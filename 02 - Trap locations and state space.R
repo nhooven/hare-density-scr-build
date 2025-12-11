@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 10 Dec 2025
 # COMPLETED: 10 Dec 2025
-# LAST MODIFIED: 10 Dec 2025
+# LAST MODIFIED: 11 Dec 2025
 # R VERSION: 4.4.3
 
 # ______________________________________________________________________________
@@ -103,7 +103,7 @@ plot(st_geometry(focal.bbox))
 plot(st_geometry(focal.traps.sf), add = T)
 
 # buffer and extract THAT bbox to make sure it's actually a rectangle
-focal.S <- spatialEco::bbox_poly(st_buffer(focal.bbox, dist = 175))
+focal.S <- spatialEco::bbox_poly(st_buffer(focal.bbox, dist = 100))
 
 ggplot() +
   
@@ -118,7 +118,7 @@ ggplot() +
   
   coord_sf(datum = st_crs(32611))
 
-# 175 m buffer here seems reasonable (yes there will be overlap with 2B)
+# 100 m buffer here seems reasonable (yes there will be overlap with 2B)
 
 # ______________________________________________________________________________
 # 8. Center S (and traps) on (0, 0) ----
@@ -191,11 +191,11 @@ ggplot() +
 # ______________________________________________________________________________
 
 # S
-st_write(centered.sf[[1]], dsn = paste0(getwd(), "/Data for model/", lyr = "focal_S.shp"))
+st_write(centered.sf[[1]], dsn = paste0(getwd(), "/Data for model/", lyr = "focal_S.shp"), append = F)
 
 # traps
 # shapefile
-st_write(centered.sf[[2]], dsn = paste0(getwd(), "/Data for model/", lyr = "focal_traps.shp"))
+st_write(centered.sf[[2]], dsn = paste0(getwd(), "/Data for model/", lyr = "focal_traps.shp"), append = F)
 
 # .csv
 traps.df <- data.frame(id = 1:nrow(centered.sf[[2]]),
