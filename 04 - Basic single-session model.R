@@ -27,6 +27,7 @@ library(sf)
 library(nimble)
 library(coda)
 library(tictoc)
+library(MCMCvis)
 
 # ______________________________________________________________________________
 # 3. Read in data ----
@@ -222,7 +223,7 @@ model.1.code <- nimbleCode({
   N <- sum(z[1:M])
   
   D <- N / S.area
-    
+  
   })
 
 # ______________________________________________________________________________
@@ -262,7 +263,9 @@ monitor <- c(
   "alpha2",
   "psi",
   "psi.sex",
-  "D"
+  "D",
+  "s",
+  "sex"
   
 )
 
@@ -305,13 +308,21 @@ model.1.run <- runMCMC(
 )
 toc()
 
-summary(model.1.run)
+# ______________________________________________________________________________
+# 9. Summarize and visualize ----
+# ______________________________________________________________________________
 
-traceplot(model.1.run)
+# summary of main parameters
+MCMCsummary(model.1.run,
+            params = c("sigma",
+                       "alpha0",
+                       "D"))
 
-# baseline detection
-exp(-1.52) / (1 + exp(-1.52))   # F
-exp(-0.75) / (1 + exp(-0.75))   # M
+# traceplot
+MCMCtrace(model.1.run,
+          params = "D",
+          pdf = F)
+
 
 # 12-11-2025
 # Females are less likely to be detected to begin with,
@@ -319,3 +330,11 @@ exp(-0.75) / (1 + exp(-0.75))   # M
 # males use slightly more space
 
 # this is interesting!
+
+# ______________________________________________________________________________
+# 10. Save draws and data lists for downstream analysis GoF ----
+# ______________________________________________________________________________
+
+save(model.1.run, file = paste0(getwd(), "/Model draws/model_1.RData"))
+save(constant.list, file = paste0(getwd(), "/Model data lists/const_1.RData"))
+save(data.list, file = paste0(getwd(), "/Model data lists/data_1.RData"))
