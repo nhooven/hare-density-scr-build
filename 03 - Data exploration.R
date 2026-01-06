@@ -3,8 +3,8 @@
 # AUTHOR: Nate Hooven
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 10 Dec 2025
-# COMPLETED: 
-# LAST MODIFIED: 10 Dec 2025
+# COMPLETED: 06 Jan 2026
+# LAST MODIFIED: 06 Jan 2026
 # R VERSION: 4.4.3
 
 # ______________________________________________________________________________
@@ -26,17 +26,21 @@ library(mefa4)
 # 3. Read in data ----
 # ______________________________________________________________________________
 
-# S polygon
-S.sf <- st_read(dsn = paste0(getwd(), "/Data for model/", lyr = "focal_S.shp"))
+# S polygons
+S.2A <- st_read(dsn = paste0(getwd(), "/Data for model/S/", lyr = "S_2A.shp"))
+S.2B <- st_read(dsn = paste0(getwd(), "/Data for model/S/", lyr = "S_2B.shp"))
 
 # traps points
-traps.sf <- st_read(dsn = paste0(getwd(), "/Data for model/", lyr = "focal_traps.shp"))
+traps.2A <- st_read(dsn = paste0(getwd(), "/Data for model/traps/", lyr = "traps_2A.shp"))
+traps.2B <- st_read(dsn = paste0(getwd(), "/Data for model/traps/", lyr = "traps_2B.shp"))
 
 # mark-recapture data
-load(paste0(getwd(), "/Data for model/mr_data.RData"))
+load(paste0(getwd(), "/Data for model/MR/mr_data_2A.RData"))
+load(paste0(getwd(), "/Data for model/MR/mr_data_2B.RData"))
 
 # trap operation matrix
-load(paste0(getwd(), "/Data for model/trap_op.RData"))
+load(paste0(getwd(), "/Data for model/Trap op/trap_op_2A.RData"))
+load(paste0(getwd(), "/Data for model/Trap op/trap_op_2B.RData"))
 
 # ______________________________________________________________________________
 # 4. Total captures by trap ----
@@ -227,9 +231,13 @@ total_caps_byTrap <- function (
   
 }
 
-total_caps_byTrap(focal.mr.3[[1]], traps.sf, occ = "total")
-total_caps_byTrap(focal.mr.3[[1]], traps.sf, occ = "all")
-total_caps_byTrap(focal.mr.3[[1]], traps.sf, occ = 2)
+# 2A
+total_caps_byTrap(focal.mr.2A.2[[1]], traps.2A, occ = "total")
+total_caps_byTrap(focal.mr.2A.2[[1]], traps.2A, occ = "all")
+
+# 2B
+total_caps_byTrap(focal.mr.2B.2[[1]], traps.2B, occ = "total")
+total_caps_byTrap(focal.mr.2B.2[[1]], traps.2B, occ = "all")
 
 # ______________________________________________________________________________
 # 5. Individual spatial capture histories ----
@@ -245,7 +253,7 @@ indiv_ch <- function (
 ) {
   
   # subset mr
-  focal.mr <- mr[indiv, ]
+  focal.mr <- mr[[1]][indiv, ]
   
   # tabulate
   indiv.tab <- as.data.frame(table(focal.mr))
@@ -279,10 +287,10 @@ indiv_ch <- function (
       y = st_coordinates(traps.sf)[ , 2],
       
       # and add MRID
-      MRID = focal.mr.3[[4]][indiv],
+      MRID = mr[[4]][indiv],
       
       # and sex
-      sex = focal.mr.3[[5]][indiv])
+      sex = mr[[5]][indiv])
   
   # plot
   # bounding box for traps
@@ -322,7 +330,7 @@ indiv_ch <- function (
 }
 
 # try it out
-indiv_ch(focal.mr.3[[1]], traps.sf, 29)
+indiv_ch(focal.mr.2B.2, traps.2B, 12)
 
 # ______________________________________________________________________________
 # 6. All spatial capture histories ----
@@ -349,10 +357,10 @@ all_ch <- function (
   # loop through individuals
   all.ch <- data.frame()
   
-  for (i in 1:nrow(mr)) {
+  for (i in 1:nrow(mr[[1]])) {
     
   # subset mr
-  focal.mr <- mr[i, ]
+  focal.mr <- mr[[1]][i, ]
     
   # tabulate
   indiv.tab <- as.data.frame(table(focal.mr))
@@ -386,10 +394,10 @@ all_ch <- function (
       y = st_coordinates(traps.sf)[ , 2],
       
       # and add MRID
-      MRID = focal.mr.3[[4]][i],
+      MRID = mr[[4]][i],
       
       # and sex
-      sex = focal.mr.3[[5]][i]) %>%
+      sex = mr[[5]][i]) %>%
     
     # replicate rows for each capture 
     slice(rep(1:n(), times = c(Freq))) %>%
@@ -453,9 +461,5 @@ all_ch <- function (
 }
 
 # try it (F = solid, M = dashed)
-all_ch(focal.mr.3[[1]], traps.sf)
+all_ch(focal.mr.2B.2, traps.2B)
 
-
-
-# 12-10-2025
-# I'll keep this here for now. I think I'm ready to fit some models tomorrow!

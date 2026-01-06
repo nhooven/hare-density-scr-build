@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 10 Dec 2025
 # COMPLETED: 10 Dec 2025
-# LAST MODIFIED: 11 Dec 2025
+# LAST MODIFIED: 06 Jan 2026
 # R VERSION: 4.4.3
 
 # ______________________________________________________________________________
@@ -78,9 +78,9 @@ ggplot() +
   
   theme_bw() +
   
-  geom_sf(data = units.sf %>% filter(site == "2A")) +
+  geom_sf(data = units.sf %>% filter(site == "2B")) +
   
-  geom_sf(data = traps.sf %>% filter(site == "2A")) +
+  geom_sf(data = traps.sf %>% filter(site == "2B")) +
   
   coord_sf(datum = st_crs(32611))
 
@@ -93,32 +93,32 @@ ggplot() +
 
 # ______________________________________________________________________________
 
-focal.traps.sf <- traps.sf %>% filter(site == "2A")
-focal.unit.sf <- units.sf %>% filter(site == "2A")
-
-# bounding box of traps
-focal.bbox <- spatialEco::bbox_poly(focal.traps.sf)
-
-plot(st_geometry(focal.bbox))
-plot(st_geometry(focal.traps.sf), add = T)
-
-# buffer and extract THAT bbox to make sure it's actually a rectangle
-focal.S <- spatialEco::bbox_poly(st_buffer(focal.bbox, dist = 100))
-
-ggplot() +
+make_state_space <- function (
+    
+  sitename,
+  buffer = 125
   
-  theme_bw() +
+) {
   
-  geom_sf(data = focal.S,
-          fill = NA) +
+  focal.traps.sf <- traps.sf %>% filter(site == sitename)
+  focal.unit.sf <- units.sf %>% filter(site == sitename)
   
-  geom_sf(data = focal.unit.sf) +
+  # bounding box of traps
+  focal.bbox <- spatialEco::bbox_poly(focal.traps.sf)
   
-  geom_sf(data = focal.traps.sf) +
+  # buffer and extract THAT bbox to make sure it's actually a rectangle
+  focal.S <- spatialEco::bbox_poly(st_buffer(focal.bbox, dist = buffer))
   
-  coord_sf(datum = st_crs(32611))
+  plot(st_geometry(focal.S))
+  plot(st_geometry(focal.traps.sf), add = T)
+  
+  return(focal.S)
+  
+}
 
-# 100 m buffer here seems reasonable (yes there will be overlap with 2B)
+# use function
+S.2A <- make_state_space(sitename = "2A")
+S.2B <- make_state_space(sitename = "2B")
 
 # ______________________________________________________________________________
 # 8. Center S (and traps) on (0, 0) ----
@@ -130,7 +130,8 @@ ggplot() +
 # function
 center_coords <- function (
     
-  S,
+  focal.S,
+  sitename,
   traps.sf
   
 ) {
@@ -155,6 +156,8 @@ center_coords <- function (
     st_cast("POLYGON")
   
   # center trap coords
+  focal.traps.sf <- traps.sf %>% filter(site == sitename)
+  
   focal.traps.coords.uncenter <- st_coordinates(focal.traps.sf)[ , c(1:2)]
   
   focal.traps.coords.center <- matrix(c(focal.traps.coords.uncenter[ , 1] - cent.x,
@@ -166,23 +169,24 @@ center_coords <- function (
                            coords = c("V1", "V2"))
   
   # return a list
-  return(list(S.center,
-              traps.center))
+  return(list(S.center,             # state space
+              traps.center))        # trap coordinates
   
 }
 
 # use function
-centered.sf <- center_coords(focal.S, focal.traps.sf)
+centered.2A.sf <- center_coords(S.2A, "2A", traps.sf)
+centered.2B.sf <- center_coords(S.2B, "2B", traps.sf)
 
 # plot
 ggplot() +
   
   theme_bw() +
   
-  geom_sf(data = centered.sf[[1]],
+  geom_sf(data = centered.2B.sf[[1]],
           fill = NA) +
   
-  geom_sf(data = centered.sf[[2]]) +
+  geom_sf(data = centered.2B.sf[[2]]) +
   
   coord_sf(datum = st_crs(32611))
 
@@ -191,16 +195,25 @@ ggplot() +
 # ______________________________________________________________________________
 
 # S
-st_write(centered.sf[[1]], dsn = paste0(getwd(), "/Data for model/", lyr = "focal_S.shp"), append = F)
+st_write(centered.2A.sf[[1]], dsn = paste0(getwd(), "/Data for model/S/", lyr = "S_2A.shp"), append = F)
+st_write(centered.2B.sf[[1]], dsn = paste0(getwd(), "/Data for model/S/", lyr = "S_2B.shp"), append = F)
 
 # traps
 # shapefile
-st_write(centered.sf[[2]], dsn = paste0(getwd(), "/Data for model/", lyr = "focal_traps.shp"), append = F)
+st_write(centered.2A.sf[[2]], dsn = paste0(getwd(), "/Data for model/traps/", lyr = "traps_2A.shp"), append = F)
+st_write(centered.2B.sf[[2]], dsn = paste0(getwd(), "/Data for model/traps/", lyr = "traps_2B.shp"), append = F)
 
 # .csv
-traps.df <- data.frame(id = 1:nrow(centered.sf[[2]]),
-                       x = st_coordinates(centered.sf[[2]])[ , 1],
-                       y = st_coordinates(centered.sf[[2]])[ , 2])
+traps.df <- data.frame(
+  
+  site = (rep(c("2A", "2B"), each = 36)),
+  id = rep(1:36, times = 2),
+  x = c(st_coordinates(centered.2A.sf[[2]])[ , 1],
+        st_coordinates(centered.2B.sf[[2]])[ , 1]),
+  y = c(st_coordinates(centered.2A.sf[[2]])[ , 2],
+        st_coordinates(centered.2B.sf[[2]])[ , 2])
+  
+  )
 
-write.csv(traps.df, paste0(getwd(), "/Data for model/focal_traps.csv"))
+write.csv(traps.df, paste0(getwd(), "/Data for model/traps/traps.csv"))
           

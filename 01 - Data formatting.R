@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 09 Dec 2025
 # COMPLETED: 10 Dec 2025
-# LAST MODIFIED: 10 Dec 2025
+# LAST MODIFIED: 06 Jan 2026
 # R VERSION: 4.4.3
 
 # ______________________________________________________________________________
@@ -58,14 +58,23 @@ mr.data <- read.csv("trap_data_2022.csv")
 # ______________________________________________________________________________
 # 4a. "Open" capture histories ----
 
-# here we will subset only the individuals we need (indivs caught during 2A 2022f)
+# here we will subset only the individuals we need
+# for the basic multi-session model, we'll pull 2A and 2B from 2022f
 
 # ______________________________________________________________________________
 
-focal.indivs <- open.ch %>%
+focal.indivs.2A <- open.ch %>%
   
-  # filter 2A during 2022f only
   filter(MR22f == "2A") %>%
+  
+  # keep AnimalID, MRID, and Sex
+  dplyr::select(AnimalID.1,
+                MRID,
+                Sex)
+
+focal.indivs.2B <- open.ch %>%
+  
+  filter(MR22f == "2B") %>%
   
   # keep AnimalID, MRID, and Sex
   dplyr::select(AnimalID.1,
@@ -78,11 +87,11 @@ focal.indivs <- open.ch %>%
 # ______________________________________________________________________________
 # 4b. Mark-recapture data ----
 
-# here we will subset only 2A, pretty simple
+# subset both units
 
 # ______________________________________________________________________________
 
-focal.mr <- mr.data %>%
+focal.mr.2A <- mr.data %>%
   
   # filter site
   filter(Site == "2A") %>%
@@ -91,8 +100,18 @@ focal.mr <- mr.data %>%
   # note that this also drops the Site column
   dplyr::select(where(~ n_distinct(.) > 1))
 
-# remove trap.id for 
-focal.mr <- focal.mr[ , -1]
+focal.mr.2B <- mr.data %>%
+  
+  # filter site
+  filter(Site == "2B") %>%
+  
+  # only keep columns with more than one value (i.e., true occasions)
+  # note that this also drops the Site column
+  dplyr::select(where(~ n_distinct(.) > 1))
+
+# remove trap.id
+focal.mr.2A <- focal.mr.2A %>% dplyr::select(-Trap)
+focal.mr.2B <- focal.mr.2B %>% dplyr::select(-Trap)
 
 # ______________________________________________________________________________
 # 4c. Check that lists of MRIDs from both match exactly ----
@@ -130,22 +149,56 @@ check_mrid <- function (
   # which MRIDs are NOTIN MR and IN indivs?
   niMR.iIndivs <- indivs$MRID[which(indivs$MRID %notin% trap.mrid)]
   
-  # df to hold information
-  check.df <- rbind(
+  # dfs to hold information
+  # in MR and not in Indivs
+  if (length(iMR.niIndivs) > 0) {
     
-    # find if those MRIDs were caught elsewhere during the same session
-    data.frame(MRID = iMR.niIndivs,
-               which.list = "iMR.niIndivs",
-               where.else = open.ch[ , c(session)][which(open.ch$MRID %in% iMR.niIndivs)]),
+    iMR.niIndivs.df <- data.frame(
+      
+      MRID = iMR.niIndivs,
+      which.list = "iMR.niIndivs",
+      where.else = open.ch[ , c(session)][which(open.ch$MRID %in% iMR.niIndivs)]
+      
+      )
     
-    # list those in indivs but not in MR
-    data.frame(MRID = ifelse(length(niMR.iIndivs) > 0,
-                             niMR.iIndivs,
-                             NA),
-               which.list = "niMR.iIndivs",
-               where.else = NA)
+  } else {
     
-  )
+    iMR.niIndivs.df <- 
+      
+      data.frame(
+    
+        MRID = NA,
+        which.list = "iMR.niIndivs",
+        where.else = NA
+        
+      )
+    
+  }
+  
+  # not in MR and in Indivs
+  if (length(niMR.iIndivs) > 0) {
+    
+    niMR.iIndivs.df <- data.frame(
+      
+      MRID = niMR.iIndivs,
+      which.list = "niMR.iIndivs",
+      where.else = NA
+      
+    )
+    
+  } else {
+    
+    niMR.iIndivs.df <- data.frame(
+      
+      MRID = NA,
+      which.list = "niMR.iIndivs",
+      where.else = NA
+      
+    )
+    
+  }
+  
+  check.df <- rbind(iMR.niIndivs.df, niMR.iIndivs.df)
   
   # return
   return(check.df)
@@ -155,7 +208,8 @@ check_mrid <- function (
 # ______________________________________________________________________________
 
 # apply function
-(check.df <- check_mrid(focal.indivs, focal.mr, "MR22f"))
+(check.df.2A <- check_mrid(focal.indivs.2A, focal.mr.2A, "MR22f"))
+(check.df.2B <- check_mrid(focal.indivs.2B, focal.mr.2B, "MR22f"))
 
 # ______________________________________________________________________________
 # 4d. Change any MR entries from "other unit" individuals ----
@@ -203,7 +257,7 @@ change_entry_otherUnit <- function (
 # ______________________________________________________________________________
 
 # use function
-focal.mr.2 <- change_entry_otherUnit(check.df, focal.mr)
+focal.mr.2A.1 <- change_entry_otherUnit(check.df.2A, focal.mr.2A)
 
 # ______________________________________________________________________________
 # 4e. Reformat MR data ----
@@ -215,13 +269,20 @@ focal.mr.2 <- change_entry_otherUnit(check.df, focal.mr)
 # in this function, we'll also create the "trapped previously" binary matrix
 # i.e., the trap response covariate!
 
+# this returns a convenient list:
+  # [[1]]: capture histories formatted for categorical likelihood n x K
+  # [[2]]: binary trap response matrix n x K
+  # [[3]]: individual index n (should bind to site name so we can make this unique later)
+  # [[4]]: MRID if we need it
+
 # ______________________________________________________________________________
 
 # function
 castMR <- function(
   
   mr,
-  indivs
+  indivs,
+  site
   
 ) {
   
@@ -291,7 +352,7 @@ castMR <- function(
     
     mr.mat, 
     prev.cap.mat,
-    1:length(indivs.mrid),        # individual index
+    paste0(site, "_", 1:length(indivs.mrid)),        # individual index
     indivs.mrid
     
     )
@@ -301,7 +362,8 @@ castMR <- function(
 }
 
 # use function
-focal.mr.3 <- castMR(focal.mr.2, focal.indivs)
+focal.mr.2A.2 <- castMR(focal.mr.2A.1, focal.indivs.2A, "2A")
+focal.mr.2B.2 <- castMR(focal.mr.2B, focal.indivs.2B, "2B")
 
 # now these data are formatted correctly for SCR
 
@@ -313,7 +375,8 @@ focal.mr.3 <- castMR(focal.mr.2, focal.indivs)
 
 # ______________________________________________________________________________
 
-focal.mr.3[[5]] <- focal.indivs$Sex
+focal.mr.2A.2[[5]] <- focal.indivs.2A$Sex
+focal.mr.2B.2[[5]] <- focal.indivs.2B$Sex
 
 # ______________________________________________________________________________
 # 5. Write to file ----
@@ -322,7 +385,8 @@ focal.mr.3[[5]] <- focal.indivs$Sex
 
 # ______________________________________________________________________________
 
-save(focal.mr.3, file = paste0(getwd(), "/Data for model/mr_data.RData"))
+save(focal.mr.2A.2, file = paste0(getwd(), "/Data for model/MR/mr_data_2A.RData"))
+save(focal.mr.2B.2, file = paste0(getwd(), "/Data for model/MR/mr_data_2B.RData"))
 
 # ______________________________________________________________________________
 # 6. Trap operation matrix ----
@@ -347,17 +411,26 @@ save(focal.mr.3, file = paste0(getwd(), "/Data for model/mr_data.RData"))
 
 # ______________________________________________________________________________
 
-focal.mr.2.vect <- unlist(focal.mr.2)
+make_trap_op <- function (focal.mr) {
+  
+  focal.mr.vect <- unlist(focal.mr)
 
-focal.mr.2.vect[which(focal.mr.2.vect %notin% c("X", "C", "B", "E"))] <- 1
-focal.mr.2.vect[which(focal.mr.2.vect %in% c("X"))] <- 0
-focal.mr.2.vect[which(focal.mr.2.vect %in% c("C", "B", "E"))] <- 0.5
+  focal.mr.vect[which(focal.mr.vect %notin% c("X", "C", "B", "E"))] <- 1
+  focal.mr.vect[which(focal.mr.vect %in% c("X"))] <- 0
+  focal.mr.vect[which(focal.mr.vect %in% c("C", "B", "E"))] <- 0.5
+  
+  trap.op <- matrix(as.numeric(focal.mr.vect),
+                    nrow = nrow(focal.mr),
+                    ncol = ncol(focal.mr))
+  
+  return(trap.op)
+  
+}
 
-trap.op <- matrix(as.numeric(focal.mr.2.vect),
-                  nrow = nrow(focal.mr.2),
-                  ncol = ncol(focal.mr.2))
-
-trap.op
+# use function
+trap.op.2A <- make_trap_op(focal.mr.2A.1)
+trap.op.2B <- make_trap_op(focal.mr.2B)
 
 # write to file
-save(trap.op, file = paste0(getwd(), "/Data for model/trap_op.RData"))
+save(trap.op.2A, file = paste0(getwd(), "/Data for model/Trap op/trap_op_2A.RData"))
+save(trap.op.2B, file = paste0(getwd(), "/Data for model/Trap op/trap_op_2B.RData"))
