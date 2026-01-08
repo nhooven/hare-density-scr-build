@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 06 Jan 2026
 # COMPLETED: 06 Jan 2026
-# LAST MODIFIED: 06 Jan 2026
+# LAST MODIFIED: 07 Jan 2026
 # R VERSION: 4.4.3
 
 # ______________________________________________________________________________
@@ -15,6 +15,7 @@
 # https://groups.google.com/g/hmecology/c/o6cWDqHHgOE
 
 # in which we add a "zeroes" variable for all augmented individuals
+# and a everDetected variable for the conditional statement
 
 # ______________________________________________________________________________
 # 2. Load packages ----
@@ -155,8 +156,8 @@ j.coords <- array(data = NA, dim = c(J, 2, G))
 
 n.aug <- vector(length = 2) 
 
-n.aug[1] = n.ind[1] * 4
-n.aug[2] = n.ind[2] * 4
+n.aug[1] = n.ind[1] * 3
+n.aug[2] = n.ind[2] * 3
 
 M = sum(n.ind) + sum(n.aug)
 
@@ -232,7 +233,6 @@ data.list <- list(
   
   # data augmentation [M]
   z = z,
-  
   zeroes = zeroes,
   
   # which groups to turn z on and off for N sum
@@ -245,9 +245,6 @@ data.list <- list(
 # 8. Modeling ----
 # ______________________________________________________________________________
 # 8a. Code ----
-
-# it will be helpful to include the dimensions here
-
 # ______________________________________________________________________________
 
 model.1.code <- nimbleCode({
@@ -256,9 +253,9 @@ model.1.code <- nimbleCode({
   # sex specific parameters [n.sex]
   for (t in 1:n.sex) {
     
-    alpha0[t] ~ dnorm(0, sd = 3)           # on the logit scale
+    alpha0[t] ~ dnorm(0, sd = 2)           # on the logit scale
     alpha2[t] ~ dnorm(0, sd = 2)           # coefficient
-    sigma[t] ~ dunif(0, 60)                # this should be > 20
+    sigma[t] ~ dunif(10, 60)               # this should be > 20
     
     alpha1[t] <- -1 / sigma[t]
     
@@ -286,7 +283,7 @@ model.1.code <- nimbleCode({
     for (j in 1:J) {
       
       # distance from each AC s to each trap j [M, J] (index by group, dim 3)
-      d[i, j] <- pow(pow(s[i, 1] - j.coords[j, 1, group[i]], 2) + pow(s[i, 2] - j.coords[j, 2, group[i]], 2), 0.5)
+      d[i, j] <- sqrt(pow(s[i, 1] - j.coords[j, 1, group[i]], 2) + pow(s[i, 2] - j.coords[j, 2, group[i]], 2))
       
     }
 
@@ -307,6 +304,9 @@ model.1.code <- nimbleCode({
             
             # previous capture covariate
             alpha2[sex2[i]] * prev.c[i, k]) * 
+          
+          # data augmentation
+          z[i] *
           
           # trap operation [J, K[g], g]
           trap.op[j, k, group[i]]
@@ -339,7 +339,7 @@ model.1.code <- nimbleCode({
   # inside, the probability of at AT LEAST ONE detection
   for (i in (n0 + 1):M) {
     
-    zeroes[i] ~ dbern(1 - prod(1 - p[i, 1:(K[group[i]]), 1:J] * z[i]))
+    zeroes[i] ~ dbern(1 - prod(1 - p[i, 1:(K[group[i]]), 1:J]))
     
   }
   
@@ -355,6 +355,10 @@ model.1.code <- nimbleCode({
 
 # ______________________________________________________________________________
 # 8b. Initial values ----
+
+# 01-07-2026
+# these should be random so each chain gets a different starting point
+
 # ______________________________________________________________________________
 
 inits <- list(
@@ -426,14 +430,12 @@ model.1.run <- runMCMC(
   
   mcmc = model.1.comp,
   niter = 10000,
-  nburnin = 2000,
+  nburnin = 5000,
   nchains = 1,
   samplesAsCodaMCMC = TRUE
   
 )
 toc()
-
-# 672 s! - not a huge speedup
 
 # ______________________________________________________________________________
 # 9. Summarize and visualize ----
@@ -448,11 +450,6 @@ MCMCtrace(model.1.run,
           params = "psi",
           pdf = F)
 
+# 01-07-2026
+# well, I think I just about sped this up as much as I can. Now to run the whole thing!
 
-# the Chandler trick reduces the runtime a little (672 instead of 826 s)
-# but it may be cumbersome to work with a categorical (multistate) data aug situation
-# for the open SCR model. That think will be slow regardless!
-# We could imagine applying this only for the z == 0 cases, right? 
-# but it appears that the chain is much less efficient in this situation. Which is a concern. 
-
-# maybe a change in S in warranted...
