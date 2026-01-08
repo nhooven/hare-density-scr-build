@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 10 Dec 2025
 # COMPLETED: 06 Jan 2026
-# LAST MODIFIED: 06 Jan 2026
+# LAST MODIFIED: 08 Jan 2026
 # R VERSION: 4.4.3
 
 # ______________________________________________________________________________
@@ -29,18 +29,30 @@ library(mefa4)
 # S polygons
 S.2A <- st_read(dsn = paste0(getwd(), "/Data for model/S/", lyr = "S_2A.shp"))
 S.2B <- st_read(dsn = paste0(getwd(), "/Data for model/S/", lyr = "S_2B.shp"))
+S.2C <- st_read(dsn = paste0(getwd(), "/Data for model/S/", lyr = "S_2C.shp"))
+S.3A <- st_read(dsn = paste0(getwd(), "/Data for model/S/", lyr = "S_3A.shp"))
+S.3C <- st_read(dsn = paste0(getwd(), "/Data for model/S/", lyr = "S_3C.shp"))
 
 # traps points
 traps.2A <- st_read(dsn = paste0(getwd(), "/Data for model/traps/", lyr = "traps_2A.shp"))
 traps.2B <- st_read(dsn = paste0(getwd(), "/Data for model/traps/", lyr = "traps_2B.shp"))
+traps.2C <- st_read(dsn = paste0(getwd(), "/Data for model/traps/", lyr = "traps_2C.shp"))
+traps.3A <- st_read(dsn = paste0(getwd(), "/Data for model/traps/", lyr = "traps_3A.shp"))
+traps.3C <- st_read(dsn = paste0(getwd(), "/Data for model/traps/", lyr = "traps_3C.shp"))
 
 # mark-recapture data
 load(paste0(getwd(), "/Data for model/MR/mr_data_2A.RData"))
 load(paste0(getwd(), "/Data for model/MR/mr_data_2B.RData"))
+load(paste0(getwd(), "/Data for model/MR/mr_data_2C.RData"))
+load(paste0(getwd(), "/Data for model/MR/mr_data_3A.RData"))
+load(paste0(getwd(), "/Data for model/MR/mr_data_3C.RData"))
 
 # trap operation matrix
 load(paste0(getwd(), "/Data for model/Trap op/trap_op_2A.RData"))
 load(paste0(getwd(), "/Data for model/Trap op/trap_op_2B.RData"))
+load(paste0(getwd(), "/Data for model/Trap op/trap_op_2C.RData"))
+load(paste0(getwd(), "/Data for model/Trap op/trap_op_3A.RData"))
+load(paste0(getwd(), "/Data for model/Trap op/trap_op_3C.RData"))
 
 # ______________________________________________________________________________
 # 4. Total captures by trap ----
@@ -231,13 +243,9 @@ total_caps_byTrap <- function (
   
 }
 
-# 2A
-total_caps_byTrap(focal.mr.2A.2[[1]], traps.2A, occ = "total")
-total_caps_byTrap(focal.mr.2A.2[[1]], traps.2A, occ = "all")
-
-# 2B
-total_caps_byTrap(focal.mr.2B.2[[1]], traps.2B, occ = "total")
-total_caps_byTrap(focal.mr.2B.2[[1]], traps.2B, occ = "all")
+# use function
+total_caps_byTrap(focal.mr.3C.2[[1]], traps.3C, occ = "total")
+total_caps_byTrap(focal.mr.3C.2[[1]], traps.3C, occ = "all")
 
 # ______________________________________________________________________________
 # 5. Individual spatial capture histories ----
@@ -330,7 +338,7 @@ indiv_ch <- function (
 }
 
 # try it out
-indiv_ch(focal.mr.2B.2, traps.2B, 12)
+indiv_ch(focal.mr.3C.2, traps.3C, 18)
 
 # ______________________________________________________________________________
 # 6. All spatial capture histories ----
@@ -461,5 +469,5 @@ all_ch <- function (
 }
 
 # try it (F = solid, M = dashed)
-all_ch(focal.mr.2B.2, traps.2B)
+all_ch(focal.mr.3C.2, traps.3C)
 

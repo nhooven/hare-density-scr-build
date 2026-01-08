@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 10 Dec 2025
 # COMPLETED: 10 Dec 2025
-# LAST MODIFIED: 06 Jan 2026
+# LAST MODIFIED: 08 Jan 2026
 # R VERSION: 4.4.3
 
 # ______________________________________________________________________________
@@ -78,9 +78,9 @@ ggplot() +
   
   theme_bw() +
   
-  geom_sf(data = units.sf %>% filter(site == "2B")) +
+  geom_sf(data = units.sf %>% filter(site == "3C")) +
   
-  geom_sf(data = traps.sf %>% filter(site == "2B")) +
+  geom_sf(data = traps.sf %>% filter(site == "3C")) +
   
   coord_sf(datum = st_crs(32611))
 
@@ -96,7 +96,7 @@ ggplot() +
 make_state_space <- function (
     
   sitename,
-  buffer = 125
+  buffer = 225
   
 ) {
   
@@ -119,6 +119,9 @@ make_state_space <- function (
 # use function
 S.2A <- make_state_space(sitename = "2A")
 S.2B <- make_state_space(sitename = "2B")
+S.2C <- make_state_space(sitename = "2C")
+S.3A <- make_state_space(sitename = "3A")
+S.3C <- make_state_space(sitename = "3C")
 
 # ______________________________________________________________________________
 # 8. Center S (and traps) on (0, 0) ----
@@ -177,16 +180,19 @@ center_coords <- function (
 # use function
 centered.2A.sf <- center_coords(S.2A, "2A", traps.sf)
 centered.2B.sf <- center_coords(S.2B, "2B", traps.sf)
+centered.2C.sf <- center_coords(S.2C, "2C", traps.sf)
+centered.3A.sf <- center_coords(S.3A, "3A", traps.sf)
+centered.3C.sf <- center_coords(S.3C, "3C", traps.sf)
 
 # plot
 ggplot() +
   
   theme_bw() +
   
-  geom_sf(data = centered.2B.sf[[1]],
+  geom_sf(data = centered.3A.sf[[1]],
           fill = NA) +
   
-  geom_sf(data = centered.2B.sf[[2]]) +
+  geom_sf(data = centered.3A.sf[[2]]) +
   
   coord_sf(datum = st_crs(32611))
 
@@ -197,21 +203,33 @@ ggplot() +
 # S
 st_write(centered.2A.sf[[1]], dsn = paste0(getwd(), "/Data for model/S/", lyr = "S_2A.shp"), append = F)
 st_write(centered.2B.sf[[1]], dsn = paste0(getwd(), "/Data for model/S/", lyr = "S_2B.shp"), append = F)
+st_write(centered.2C.sf[[1]], dsn = paste0(getwd(), "/Data for model/S/", lyr = "S_2C.shp"), append = F)
+st_write(centered.3A.sf[[1]], dsn = paste0(getwd(), "/Data for model/S/", lyr = "S_3A.shp"), append = F)
+st_write(centered.3C.sf[[1]], dsn = paste0(getwd(), "/Data for model/S/", lyr = "S_3C.shp"), append = F)
 
 # traps
 # shapefile
 st_write(centered.2A.sf[[2]], dsn = paste0(getwd(), "/Data for model/traps/", lyr = "traps_2A.shp"), append = F)
 st_write(centered.2B.sf[[2]], dsn = paste0(getwd(), "/Data for model/traps/", lyr = "traps_2B.shp"), append = F)
+st_write(centered.2C.sf[[2]], dsn = paste0(getwd(), "/Data for model/traps/", lyr = "traps_2C.shp"), append = F)
+st_write(centered.3A.sf[[2]], dsn = paste0(getwd(), "/Data for model/traps/", lyr = "traps_3A.shp"), append = F)
+st_write(centered.3C.sf[[2]], dsn = paste0(getwd(), "/Data for model/traps/", lyr = "traps_3C.shp"), append = F)
 
 # .csv
 traps.df <- data.frame(
   
-  site = (rep(c("2A", "2B"), each = 36)),
-  id = rep(1:36, times = 2),
+  site = (rep(c("2A", "2B", "2C", "3A", "3C"), each = 36)),
+  id = rep(1:36, times = 5),
   x = c(st_coordinates(centered.2A.sf[[2]])[ , 1],
-        st_coordinates(centered.2B.sf[[2]])[ , 1]),
+        st_coordinates(centered.2B.sf[[2]])[ , 1],
+        st_coordinates(centered.2C.sf[[2]])[ , 1],
+        st_coordinates(centered.3A.sf[[2]])[ , 1],
+        st_coordinates(centered.3C.sf[[2]])[ , 1]),
   y = c(st_coordinates(centered.2A.sf[[2]])[ , 2],
-        st_coordinates(centered.2B.sf[[2]])[ , 2])
+        st_coordinates(centered.2B.sf[[2]])[ , 2],
+        st_coordinates(centered.2C.sf[[2]])[ , 2],
+        st_coordinates(centered.3A.sf[[2]])[ , 2],
+        st_coordinates(centered.3C.sf[[2]])[ , 2])
   
   )
 
