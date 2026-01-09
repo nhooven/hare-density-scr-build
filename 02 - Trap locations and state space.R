@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 10 Dec 2025
 # COMPLETED: 10 Dec 2025
-# LAST MODIFIED: 08 Jan 2026
+# LAST MODIFIED: 09 Jan 2026
 # R VERSION: 4.4.3
 
 # ______________________________________________________________________________
@@ -96,7 +96,7 @@ ggplot() +
 make_state_space <- function (
     
   sitename,
-  buffer = 225
+  buffer = 175
   
 ) {
   

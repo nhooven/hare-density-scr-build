@@ -4,7 +4,7 @@
 # EMAIL: nathan.d.hooven@gmail.com
 # BEGAN: 06 Jan 2026
 # COMPLETED: 
-# LAST MODIFIED: 08 Jan 2026
+# LAST MODIFIED: 09 Jan 2026
 # R VERSION: 4.4.3
 
 # ______________________________________________________________________________
@@ -220,11 +220,11 @@ j.coords <- j_coords(traps.list)
 
 n.aug <- vector(length = G) 
 
-n.aug[1] = n.ind[1] * 4
-n.aug[2] = n.ind[2] * 4
-n.aug[3] = n.ind[3] * 4
-n.aug[4] = n.ind[4] * 4
-n.aug[5] = n.ind[5] * 4
+n.aug[1] = n.ind[1] * 5
+n.aug[2] = n.ind[2] * 5
+n.aug[3] = n.ind[3] * 5
+n.aug[4] = n.ind[4] * 5
+n.aug[5] = n.ind[5] * 5
 
 M = sum(n.ind) + sum(n.aug)
 
@@ -508,10 +508,10 @@ tic()
 model.1.run <- runMCMC(
   
   mcmc = model.1.comp,
-  niter = 10000,
-  nburnin = 5000,
-  nchains = 1,
-  thin = 5,
+  niter = 20000,
+  nburnin = 10000,
+  nchains = 2,
+  thin = 10,
   samplesAsCodaMCMC = TRUE
   
 )
@@ -523,13 +523,11 @@ toc()
 
 # summary of main parameters
 MCMCsummary(model.1.run,
-            params = c("psi"))
+            params = c("D"))
 
 # traceplot
 MCMCtrace(model.1.run,
           params = "D",
           pdf = F)
 
-# bad chain behavior, but the model is doing what I want it to do
-
-# again, the state space is probably too small
+# chains are working better here. I really need to allow for more augmented individuals though...
